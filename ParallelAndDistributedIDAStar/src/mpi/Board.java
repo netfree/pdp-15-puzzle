@@ -46,6 +46,10 @@ public class Board implements Serializable {
 
     }
 
+    public int getNumOfSteps() {
+        return nrOfSteps;
+    }
+
     public int getManhattanDistance(){
         return manhattanDistance;
     }
@@ -77,7 +81,7 @@ public class Board implements Serializable {
         byte[][] boardPieces = new byte[4][4];
         int freeRowPos = -1;
         int freeColPos = -1;
-        Scanner scanner = new Scanner(new BufferedReader(new FileReader("board.in")));
+        Scanner scanner = new Scanner(new BufferedReader(new FileReader("D:/project/pdp-15-puzzle/ParallelAndDistributedIDAStar/src/mpi/board.in")));
         for (int row=0;row<4;row++){
             for(int col=0;col<4;col++){
                 boardPieces[row][col]=Integer.valueOf(scanner.nextInt()).byteValue();
@@ -137,4 +141,6 @@ public class Board implements Serializable {
         Collections.reverse(resultStr);
         return "MOVES " + String.join("",resultStr) + "NR OF STEPS=" + nrOfSteps;
     }
+
+
 }

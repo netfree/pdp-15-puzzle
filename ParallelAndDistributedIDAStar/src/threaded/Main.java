@@ -14,7 +14,7 @@ public class Main {
     static Instant start;
 
     public static void main(String[] args) throws FileNotFoundException, ExecutionException, InterruptedException {
-        State state = StateUtils.readInitialStateFromFile("initial_state.in");
+        State state = StateUtils.readInitialStateFromFile("board.in");
         start = Instant.now();
         List<State> path = SequentialIDAStar.ida_star(state, 7);
         System.out.println("finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
