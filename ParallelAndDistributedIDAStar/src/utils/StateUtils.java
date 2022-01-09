@@ -23,7 +23,7 @@ public class StateUtils {
                 initialPosition = new BoardPosition(size, i / size, i % size);
             matrix[i / size][i % size] = integers.get(i);
         }
-        return new State(size, matrix, initialPosition);
+        return new State(0, size, matrix, initialPosition);
     }
 
     public static State readInitialStateFromFile(String pathname) throws FileNotFoundException {
@@ -38,7 +38,7 @@ public class StateUtils {
                     initialPosition = new BoardPosition(boardSize, i, j);
                 matrix[i][j] = number;
             }
-        return new State(boardSize, matrix, initialPosition);
+        return new State(0, boardSize, matrix, initialPosition);
     }
 }
 
