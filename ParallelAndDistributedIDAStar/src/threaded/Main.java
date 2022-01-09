@@ -17,8 +17,15 @@ public class Main {
         State state = StateUtils.readInitialStateFromFile("initial_state.in");
         start = Instant.now();
         List<State> path = SequentialIDAStar.ida_star(state, 0);
-        System.out.println("finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
+        System.out.println("sequential finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
         assert path != null;
-        path.forEach(System.out::println);
+        start = Instant.now();
+        path = SequentialIDAStar.ida_star(state, 5);
+        System.out.println("5 threads finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
+        assert path != null;
+        start = Instant.now();
+        path = SequentialIDAStar.ida_star(state, 8);
+        System.out.println("8 threads finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
+        assert path != null;
     }
 }
