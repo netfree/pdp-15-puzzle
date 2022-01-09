@@ -4,16 +4,13 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Board implements Serializable {
 
     private static final int[] di = new int[]{0,-1,0,1};
     private static final int[] dj = new int[]{-1,0,1,0};
-    private static final String[] moves = new String[]{"up","down","left","right"};
+    private static final String[] movesStr = new String[]{"left", "up", "right", "down"};
 
     private final byte[][] boardPieces;
 
@@ -95,6 +92,49 @@ public class Board implements Serializable {
 
     public List<Board> generateMoves(){
         List<Board> moves = new ArrayList<>();
+        for (int k =0 ; k<4;k++){
+            if (freeRowPos + di[k]>=0 && freeRowPos + di[k] < 4 && freeColPos + dj[k]>=0 && freeColPos + dj[k]<4 ){
+                int movedRowPos = freeRowPos + di[k];
+                int movedColPos = freeColPos + dj[k];
+                if (previousBoard != null && movedRowPos == previousBoard.freeRowPos && movedColPos == previousBoard.freeColPos){
+                    continue;
+                }
+                byte[][] movedBoardPieces = Arrays.stream(boardPieces).map(
+                        byte[]::clone
+                ).toArray(byte[][]::new);
+                movedBoardPieces[freeRowPos][freeColPos] = movedBoardPieces[movedRowPos][movedColPos];
+                movedBoardPieces[movedRowPos][movedRowPos] = 0;
+                moves.add(new Board(movedBoardPieces,movedRowPos,movedColPos,nrOfSteps+1,this, movesStr[k]));
+            }
+        }
         return moves;
+    }
+
+    public boolean equals(Object obj){
+        if (this==obj) return true;
+        if (obj==null || getClass() != obj.getClass()) return false;
+        Board board = (Board) obj;
+        boolean bool = true;
+        for (int i =0 ; i<4;i++)
+            bool = bool && Arrays.equals(boardPieces[i], board.boardPieces[i]);
+        return bool;
+    }
+
+    @Override
+    public String toString(){
+        Board board = this;
+        List<String> resultStr = new ArrayList<>();
+        while(board!=null){
+            StringBuilder result = new StringBuilder();
+            result.append("\n");
+            result.append(board.move);
+            result.append("\n");
+            Arrays.stream(board.boardPieces).forEach(row->result.append(Arrays.toString(row)).append("\n"));
+            result.append("\n");
+            resultStr.add(result.toString());
+            board = board.previousBoard;
+        }
+        Collections.reverse(resultStr);
+        return "MOVES " + String.join("",resultStr) + "NR OF STEPS=" + nrOfSteps;
     }
 }
