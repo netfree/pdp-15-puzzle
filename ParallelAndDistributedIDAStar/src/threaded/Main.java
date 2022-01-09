@@ -5,12 +5,19 @@ import sequential.SequentialIDAStar;
 import utils.StateUtils;
 
 import java.io.FileNotFoundException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class Main {
-    public static void main(String[] args) throws FileNotFoundException {
+    static Instant start;
+
+    public static void main(String[] args) throws FileNotFoundException, ExecutionException, InterruptedException {
         State state = StateUtils.readInitialStateFromFile("initial_state.in");
-        List<State> path = SequentialIDAStar.ida_star(state);
+        start = Instant.now();
+        List<State> path = SequentialIDAStar.ida_star(state, 0);
+        System.out.println("finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
         assert path != null;
         path.forEach(System.out::println);
     }
