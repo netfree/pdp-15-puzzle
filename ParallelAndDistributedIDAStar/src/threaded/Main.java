@@ -16,7 +16,7 @@ public class Main {
     public static void main(String[] args) throws FileNotFoundException, ExecutionException, InterruptedException {
         State state = StateUtils.readInitialStateFromFile("initial_state.in");
         start = Instant.now();
-        List<State> path = SequentialIDAStar.ida_star(state, 0);
+        List<State> path = SequentialIDAStar.ida_star(state, 7);
         System.out.println("finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
         assert path != null;
         path.forEach(System.out::println);

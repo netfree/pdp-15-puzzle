@@ -129,7 +129,7 @@ public class SequentialIDAStar {
                 q = Math.max(q, 0);
 
                 int finalQ = q;
-                FutureTask<SearchResult> futureTask = new FutureTask<>(() -> {return threaded_search(newPath, bound, finalQ);});
+                FutureTask<SearchResult> futureTask = new FutureTask<>(() -> threaded_search(newPath, bound, finalQ));
                 futureTaskList.add(futureTask);
                 Thread t = new Thread(futureTask);
                 t.start();
