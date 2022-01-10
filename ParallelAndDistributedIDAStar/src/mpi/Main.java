@@ -50,7 +50,7 @@ public class Main {
                 MPI.COMM_WORLD.Send(new int[]{minBound}, 0, 1, MPI.INT, i + 1, 0);
             }
 
-            Object[] pairs = new Object[size + 5];
+            Object[] pairs = new Object[size];
             // receive data
             for (int i = 1; i <= queue.size(); i++) {
                 MPI.COMM_WORLD.Recv(pairs, i - 1, 1, MPI.OBJECT, i, 0);
