@@ -27,5 +27,9 @@ public class Main {
         path = SequentialIDAStar.ida_star(state, 8);
         System.out.println("8 threads finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
         assert path != null;
+        path = SequentialIDAStar.ida_star(state, 100);
+        System.out.println("100 threads finished in " + Duration.between(start, Instant.now()).toMillis() + " ms\n");
+        assert path != null;
+        System.out.println(path.toString());
     }
 }

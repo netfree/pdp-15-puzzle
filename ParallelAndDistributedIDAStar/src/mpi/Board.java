@@ -1,146 +1,154 @@
-package mpi;
+package mpisdfds;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
-public class Board implements Serializable {
+public final class Board implements Serializable {
 
-    private static final int[] di = new int[]{0,-1,0,1};
-    private static final int[] dj = new int[]{-1,0,1,0};
-    private static final String[] movesStr = new String[]{"left", "up", "right", "down"};
+    private static final int[] dx = new int[]{0, -1, 0, 1};
+    private static final int[] dy = new int[]{-1, 0, 1, 0};
+    private static final String[] movesStrings = new String[]{"left", "up", "right", "down"};
 
-    private final byte[][] boardPieces;
+    private final byte[][] tiles;
 
-    private final Board previousBoard;
+    private final int numOfSteps;
+    private final int freePosI;
+    private final int freePosJ;
 
-    private final int minNrOfSteps;
-
-    private final int nrOfSteps;
-
-    private final int freeColPos;
-
-    private final int freeRowPos;
-
+    private final Board previousState;
+    private final int minSteps;
     private final int estimation;
-
-    private final int manhattanDistance;
-
+    private final int manhattan;
     private final String move;
-
     private final int hashValue;
 
-    public Board(byte[][] boardPieces, int freeRowPos, int freeColPos, int nrOfSteps, Board previousBoard, String move){
-        this.boardPieces=boardPieces;
-        this.freeColPos=freeColPos;
-        this.freeRowPos=freeRowPos;
-        this.nrOfSteps=nrOfSteps;
-        this.previousBoard=previousBoard;
-        this.move=move;
-        this.manhattanDistance=calculateManhattanDistance();
-        this.minNrOfSteps=nrOfSteps+manhattanDistance;
-        this.estimation=nrOfSteps+manhattanDistance;
-        this.hashValue=hashingSimulation();
 
+    public Board(byte[][] tiles, int freePosI, int freePosJ, int numOfSteps, Board previousState, String move) {
+        this.tiles = tiles;
+        this.freePosI = freePosI;
+        this.freePosJ = freePosJ;
+        this.numOfSteps = numOfSteps;
+        this.previousState = previousState;
+        this.move = move;
+        this.manhattan = manhattanDistance();
+        this.minSteps = numOfSteps + manhattan;
+        this.estimation = manhattan + numOfSteps;
+        this.hashValue = hashCodeFake();
     }
 
-    public int getNumOfSteps() {
-        return nrOfSteps;
-    }
-
-    public int getManhattanDistance(){
-        return manhattanDistance;
-    }
-
-    private int hashingSimulation(){
-        int hashResult = 0 ;
-        for (int row =0 ; row<4;row++){
-            hashResult += Arrays.hashCode(boardPieces[row]);
-        }
-        return hashResult;
-    }
-
-    private int calculateManhattanDistance() {
-        int result = 0;
-        for (int row = 0 ; row<4; row++){
-            for ( int col =0 ; col < 4 ; col ++ )
-            {
-                if (boardPieces[row][col] != 0 ){
-                    int finalRowPos = (boardPieces[row][col] - 1 ) / 4;
-                    int finalColPos = (boardPieces[row][col] - 1 ) % 4;
-                    result = Math.abs(row - finalRowPos) + Math.abs(col - finalColPos);
+    public static Board readBoard() throws IOException {
+        byte[][] tiles = new byte[4][4];
+        int freeI = -1, freeJ = -1;
+        Scanner scanner = new Scanner(new BufferedReader(new FileReader("D:\\ubb\\sem5\\pdp\\pdp-15-puzzle\\ParallelAndDistributedIDAStar\\src\\mpi\\board.in")));
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                tiles[i][j] = Integer.valueOf(scanner.nextInt()).byteValue();
+                if (tiles[i][j] == 0) {
+                    freeI = i;
+                    freeJ = j;
                 }
             }
         }
-        return result;
+        return new Board(tiles, freeI, freeJ, 0, null, "");
     }
-    
-    public static Board readBoard() throws IOException{
-        byte[][] boardPieces = new byte[4][4];
-        int freeRowPos = -1;
-        int freeColPos = -1;
-        Scanner scanner = new Scanner(new BufferedReader(new FileReader("D:/project/pdp-15-puzzle/ParallelAndDistributedIDAStar/src/mpi/board.in")));
-        for (int row=0;row<4;row++){
-            for(int col=0;col<4;col++){
-                boardPieces[row][col]=Integer.valueOf(scanner.nextInt()).byteValue();
-                if (boardPieces[row][col]==0){
-                    freeRowPos=row;
-                    freeColPos=col;
+
+
+    public int manhattanDistance() {
+        int s = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (tiles[i][j] != 0) {
+                    int targetI = (tiles[i][j] - 1) / 4;
+                    int targetJ = (tiles[i][j] - 1) % 4;
+                    s += Math.abs(i - targetI) + Math.abs(j - targetJ);
                 }
             }
         }
-        return new Board(boardPieces,freeRowPos,freeColPos,0,null,"");
+        return s;
     }
 
-    public List<Board> generateMoves(){
+    public List<Board> generateMoves() {
         List<Board> moves = new ArrayList<>();
-        for (int k =0 ; k<4;k++){
-            if (freeRowPos + di[k]>=0 && freeRowPos + di[k] < 4 && freeColPos + dj[k]>=0 && freeColPos + dj[k]<4 ){
-                int movedRowPos = freeRowPos + di[k];
-                int movedColPos = freeColPos + dj[k];
-                if (previousBoard != null && movedRowPos == previousBoard.freeRowPos && movedColPos == previousBoard.freeColPos){
+        for (int k = 0; k < 4; k++) {
+            if (freePosI + dx[k] >= 0 && freePosI + dx[k] < 4 && freePosJ + dy[k] >= 0 && freePosJ + dy[k] < 4) {
+                int movedFreePosI = freePosI + dx[k];
+                int movedFreePosJ = freePosJ + dy[k];
+                if (previousState != null && movedFreePosI == previousState.freePosI && movedFreePosJ == previousState.freePosJ) {
                     continue;
                 }
-                byte[][] movedBoardPieces = Arrays.stream(boardPieces).map(
-                        byte[]::clone
-                ).toArray(byte[][]::new);
-                movedBoardPieces[freeRowPos][freeColPos] = movedBoardPieces[movedRowPos][movedColPos];
-                movedBoardPieces[movedRowPos][movedRowPos] = 0;
-                moves.add(new Board(movedBoardPieces,movedRowPos,movedColPos,nrOfSteps+1,this, movesStr[k]));
+                byte[][] movedTiles = Arrays.stream(tiles)
+                        .map(byte[]::clone)
+                        .toArray(byte[][]::new);
+                movedTiles[freePosI][freePosJ] = movedTiles[movedFreePosI][movedFreePosJ];
+                movedTiles[movedFreePosI][movedFreePosJ] = 0;
+
+                moves.add(new Board(movedTiles, movedFreePosI, movedFreePosJ, numOfSteps + 1, this, movesStrings[k]));
+
             }
         }
         return moves;
     }
 
-    public boolean equals(Object obj){
-        if (this==obj) return true;
-        if (obj==null || getClass() != obj.getClass()) return false;
-        Board board = (Board) obj;
-        boolean bool = true;
-        for (int i =0 ; i<4;i++)
-            bool = bool && Arrays.equals(boardPieces[i], board.boardPieces[i]);
-        return bool;
+    @Override
+    public String toString() {
+        Board current = this;
+        List<String> strings = new ArrayList<>();
+        while (current != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n");
+            sb.append(current.move);
+            sb.append("\n");
+            Arrays.stream(current.tiles).forEach(row -> sb.append(Arrays.toString(row)).append("\n"));
+            sb.append("\n");
+            strings.add(sb.toString());
+            current = current.previousState;
+        }
+        Collections.reverse(strings);
+        return "Moves{" +
+                String.join("", strings) +
+                "numOfSteps=" + numOfSteps +
+                '}';
     }
 
     @Override
-    public String toString(){
-        Board board = this;
-        List<String> resultStr = new ArrayList<>();
-        while(board!=null){
-            StringBuilder result = new StringBuilder();
-            result.append("\n");
-            result.append(board.move);
-            result.append("\n");
-            Arrays.stream(board.boardPieces).forEach(row->result.append(Arrays.toString(row)).append("\n"));
-            result.append("\n");
-            resultStr.add(result.toString());
-            board = board.previousBoard;
-        }
-        Collections.reverse(resultStr);
-        return "MOVES " + String.join("",resultStr) + "NR OF STEPS=" + nrOfSteps;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Board matrix = (Board) o;
+        boolean flag = true;
+        for (int i = 0; i < 4; i++)
+            flag = flag && Arrays.equals(tiles[i], matrix.tiles[i]);
+        return flag;
     }
 
+    @Override
+    public int hashCode() {
+        return hashValue;
+    }
+
+
+    private int hashCodeFake() {
+        int result = 0;
+        for (int i = 0; i < 4; i++) {
+            result += Arrays.hashCode(tiles[i]);
+        }
+        return result;
+    }
+
+    public int getEstimation() {
+        return estimation;
+    }
+
+    public int getMinSteps() {
+        return minSteps;
+    }
+
+    public int getNumOfSteps() {
+        return numOfSteps;
+    }
+
+    public int getManhattan() {
+        return manhattan;
+    }
 
 }

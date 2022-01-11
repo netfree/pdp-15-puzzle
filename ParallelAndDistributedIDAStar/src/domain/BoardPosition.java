@@ -1,9 +1,10 @@
 package domain;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BoardPosition {
+public class BoardPosition implements Serializable {
     private final int i, j;
     private final int boardSize;
     private static final int[] di = new int[]{0, -1, 0, 1};

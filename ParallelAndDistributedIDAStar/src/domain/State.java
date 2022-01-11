@@ -1,11 +1,12 @@
 package domain;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class State {
+public class State implements Serializable {
     private final int g;
     private final int size;
     private final int[][] matrix;

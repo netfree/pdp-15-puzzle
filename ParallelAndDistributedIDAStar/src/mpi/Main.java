@@ -1,5 +1,6 @@
 package mpi;
-
+import domain.State;
+import utils.StateUtils;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -10,128 +11,122 @@ public class Main {
         MPI.Init(args);
         int me = MPI.COMM_WORLD.Rank();
         if (me == 0) {
-            // master process
-            Board board = Board.readBoard();
-            masterSearch(board);
+            State state = StateUtils.readInitialStateFromFile("initial_state.in");
+            main_worker(state);
         } else {
-            // worker process
-            workerSearch();
+            worker_search();
         }
         MPI.Finalize();
     }
 
-    private static void masterSearch(Board root) {
+    private static void main_worker(State initial_state) {
         int size = MPI.COMM_WORLD.Size();
         int workers = size - 1;
-        int minBound = root.getManhattanDistance();
+        int bound = initial_state.getH();
         boolean found = false;
         long time = System.currentTimeMillis();
 
-        // generate the starting configurations for the workers
-        Queue<Board> queue = new LinkedList<>();
-        queue.add(root);
-        while (queue.size() + queue.peek().generateMoves().size() - 1 <= workers) {
-            Board curr = queue.poll();
-            for (Board neighbour : curr.generateMoves()) {
-                queue.add(neighbour);
-            }
+        Queue<State> queue = new LinkedList<>();
+        queue.add(initial_state);
+        while (true) {
+            assert queue.peek() != null;
+            if (!(queue.size() + queue.peek().getListOfCandidates().size() - 1 <= workers)) break;
+            State candidate = queue.poll();
+            assert candidate != null;
+            queue.addAll(candidate.getListOfCandidates());
         }
 
         while (!found) {
-
-            // send data to all workers
-            Queue<Board> temp = new LinkedList<>();
-            temp.addAll(queue);
+            Queue<State> temp = new LinkedList<>(queue);
             for (int i = 0; i < queue.size(); i++) {
-                // for each worker, send a "root"
-                Board curr = temp.poll();
+                State candidate = temp.poll();
                 MPI.COMM_WORLD.Send(new boolean[]{false}, 0, 1, MPI.BOOLEAN, i + 1, 0);
-                MPI.COMM_WORLD.Send(new Object[]{curr}, 0, 1, MPI.OBJECT, i + 1, 0);
-                MPI.COMM_WORLD.Send(new int[]{minBound}, 0, 1, MPI.INT, i + 1, 0);
+                MPI.COMM_WORLD.Send(new Object[]{candidate}, 0, 1, MPI.OBJECT, i + 1, 0);
+                MPI.COMM_WORLD.Send(new int[]{bound}, 0, 1, MPI.INT, i + 1, 0);
             }
 
-            Object[] pairs = new Object[size];
-            // receive data
+            Object[] searchResults = new Object[size];
+
             for (int i = 1; i <= queue.size(); i++) {
-                MPI.COMM_WORLD.Recv(pairs, i - 1, 1, MPI.OBJECT, i, 0);
+                MPI.COMM_WORLD.Recv(searchResults, i - 1, 1, MPI.OBJECT, i, 0);
             }
 
-            // check if any node found a solution
-            int newMinBound = Integer.MAX_VALUE;
+            int newBound = Integer.MAX_VALUE;
+
             for (int i = 0; i < queue.size(); i++) {
-                Pair<Integer, Board> p = (Pair<Integer, Board>) pairs[i];
-                //System.out.println(p.toString());
-                if (p.getEl1() == -1) {
-                    // found solution
-                    System.out.println("Solution found in " + p.getEl2().getNumOfSteps() + " steps");
-                    System.out.println("Solution is: ");
-                    System.out.println(p.getEl2());
-                    System.out.println("Execution time: " + (System.currentTimeMillis() - time) + "ms");
+                DistributedSearchResult p = (DistributedSearchResult) searchResults[i];
+                if (p.getMin() == -1) {
+                    System.out.println("Reached goal state: ");
+                    System.out.println(p.getState());
+                    System.out.println("in " + (System.currentTimeMillis() - time) + "ms");
                     found = true;
                     break;
-                } else if (p.getEl1() < newMinBound) {
-                    newMinBound = p.getEl1();
+                } else if (p.getMin() < newBound) {
+                    newBound = p.getMin();
                 }
             }
             if(!found){
-                System.out.println("Depth " + newMinBound + " reached in " + (System.currentTimeMillis() - time) + "ms");
-                minBound = newMinBound;
+                System.out.println("Bound " + bound + " finished");
+                bound = newBound;
             }
         }
 
         for (int i = 1; i < size; i++) {
-            // shut down workers when solution was found
-            Board curr = queue.poll();
+            State candidate = queue.poll();
             MPI.COMM_WORLD.Send(new boolean[]{true}, 0, 1, MPI.BOOLEAN, i, 0);
-            MPI.COMM_WORLD.Send(new Object[]{curr}, 0, 1, MPI.OBJECT, i, 0);
-            MPI.COMM_WORLD.Send(new int[]{minBound}, 0, 1, MPI.INT, i, 0);
+            MPI.COMM_WORLD.Send(new Object[]{candidate}, 0, 1, MPI.OBJECT, i, 0);
+            MPI.COMM_WORLD.Send(new int[]{bound}, 0, 1, MPI.INT, i, 0);
         }
     }
 
-    private static void workerSearch() {
+    private static void worker_search() {
         while (true) {
-            Object[] Board = new Object[1];
+            Object[] state = new Object[1];
             int[] bound = new int[1];
-            boolean[] end = new boolean[1];
-            MPI.COMM_WORLD.Recv(end, 0, 1, MPI.BOOLEAN, 0, 0);
-            MPI.COMM_WORLD.Recv(Board, 0, 1, MPI.OBJECT, 0, 0);
+            boolean[] found = new boolean[1];
+
+            MPI.COMM_WORLD.Recv(found, 0, 1, MPI.BOOLEAN, 0, 0);
+            MPI.COMM_WORLD.Recv(state, 0, 1, MPI.OBJECT, 0, 0);
             MPI.COMM_WORLD.Recv(bound, 0, 1, MPI.INT, 0, 0);
-            if (end[0]) { // shut down when solution was found
-                //System.out.println("Node " + MPI.COMM_WORLD.Rank() + " is ending its execution");
+
+            if (found[0]) {
                 return;
             }
+
             int minBound = bound[0];
-            Board current = (Board) Board[0];
-            Pair<Integer, Board> result = search(current, current.getNumOfSteps(), minBound);
+            State candidate = (State) state[0];
+            DistributedSearchResult result = search(candidate, minBound);
             MPI.COMM_WORLD.Send(new Object[]{result}, 0, 1, MPI.OBJECT, 0, 0);
         }
     }
 
-    public static Pair<Integer, Board> search(Board current, int numSteps, int bound) {
-        int estimation = numSteps + current.getManhattanDistance();
+    public static DistributedSearchResult search(State current, int bound) {
+        int estimation = current.getG() + current.getH();
         if (estimation > bound) {
-            return new Pair<>(estimation, current);
+            return new DistributedSearchResult(estimation, current);
         }
         if (estimation > 80) {
-            return new Pair<>(estimation, current);
+            return new DistributedSearchResult(estimation, current);
         }
-        if (current.getManhattanDistance() == 0) {
-            return new Pair<>(-1, current);
+        if (current.getH() == 0) {
+            return new DistributedSearchResult(-1, current);
         }
         int min = Integer.MAX_VALUE;
-        Board solution = null;
-        for (Board next : current.generateMoves()) {
-            Pair<Integer, Board> result = search(next, numSteps + 1, bound);
-            int t = result.getEl1();
+
+        State ans = null;
+
+        for (State next : current.getListOfCandidates()) {
+            DistributedSearchResult result = search(next, bound);
+            int t = result.getMin();
             if (t == -1) {
-                return new Pair<>(-1, result.getEl2());
+                return new DistributedSearchResult(-1, result.getState());
             }
             if (t < min) {
+                ans = result.getState();
                 min = t;
-                solution = result.getEl2();
             }
         }
-        return new Pair<>(min, solution);
+        return new DistributedSearchResult(min, ans);
     }
 
 }
