@@ -1,4 +1,5 @@
 package mpi;
+import domain.DistributedSearchResult;
 import domain.State;
 import utils.StateUtils;
 import java.io.IOException;

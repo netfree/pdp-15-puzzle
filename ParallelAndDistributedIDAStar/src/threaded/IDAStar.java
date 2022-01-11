@@ -1,6 +1,6 @@
-package sequential;
+package threaded;
 import domain.State;
-import mpi.ThreadedSearchResult;
+import domain.ThreadedSearchResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,14 +8,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SequentialIDAStar {
+public class IDAStar {
     public static List<State> ida_star(State initialState, int nr_threads) throws ExecutionException, InterruptedException {
         int bound = initialState.getH();
         List<State> path = new ArrayList<>();
         path.add(initialState);
         while(true){
             ThreadedSearchResult searchResult = threaded_search(path, bound, new AtomicInteger(nr_threads + 1));
-            System.out.println("Bound " + bound + "finised");
+            System.out.println("Bound " + bound + " finished");
             if(searchResult.found)
                 return path;
             if(searchResult.t == Integer.MAX_VALUE)

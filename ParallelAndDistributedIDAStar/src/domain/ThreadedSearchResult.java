@@ -1,4 +1,4 @@
-package mpi;
+package domain;
 
 import domain.State;
 
